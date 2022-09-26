@@ -156,7 +156,7 @@ def attach_parent(child, parent, goal):
         parent.childs.append(child)
     else:
         child.g = 0 # For start cell
-    # Computes Manhattan distance heuristic
+    # We use norm 2 distance as our heuristic
     child.h = np.sqrt((goal.x - child.x)**2 + (goal.y -child.y)**2)
     child.f = child.g + child.h
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     # solve() function solves all tasks
     # Tasks 1-4 are handled the same, 5 is a bit different
     solve(1)     
-    solve(2)     
-    solve(3)     
-    solve(4) 
-    solve(5) 
+    # solve(2)     
+    # solve(3)     
+    # solve(4) 
+    # solve(5) 

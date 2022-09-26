@@ -44,8 +44,8 @@ class Node():
         if(other==None): return False
         return self.x == other.x and self.y == other.y
 
-def main(task):
-    """Main function that performs the pathfinding A* algorithm. Works for tasks 1-4
+def solve(task):
+    """Main function that performs the pathfinding A* algorithm. Works for all tasks
     Parameters.
     ----------
     task: int
@@ -68,6 +68,18 @@ def main(task):
     node_count = 0
     # Agenda loop
     while(len(open) != 0):
+        # Move the goal on task 5, update the goal node and recompute heuristics
+        if(task == 5):
+            map.tick()
+            new_goal_coords = map.get_goal_pos()
+            # If goal coordinates changed, update goal position and open node heuristics
+            if(new_goal_coords[0] != goal_coords[0] or new_goal_coords[1] != goal_coords[1]):
+                goal_coords = new_goal_coords
+                goal = Node(goal_coords, int_map[goal_coords[0]][goal_coords[1]])
+                for n in open:
+                    n.h = np.sqrt((goal.x - n.x)**2 + (goal.y - n.y)**2)
+                    n.f = n.g + n.h
+
         # Update open and closed lists
         node_count += 1
         if(len(open) > max_len):
@@ -193,7 +205,10 @@ def print_path(node, map):
     map.show_map()
 
 if __name__ == '__main__':
-    main(1) # Code above works for tasks 1 to 4, just change task id passed here
-    main(2)
-    main(3)
-    main(4) 
+    # solve() function solves all tasks
+    # Tasks 1-4 are handled the same, 5 is a bit different
+    solve(1)     
+    solve(2)     
+    solve(3)     
+    solve(4) 
+    solve(5) 

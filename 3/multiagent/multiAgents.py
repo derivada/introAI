@@ -13,6 +13,8 @@
 
 
 from asyncio.windows_events import INFINITE
+from cmath import inf
+from json.encoder import INFINITY
 from multiprocessing.sharedctypes import Value
 from pickle import TRUE
 from util import manhattanDistance
@@ -188,7 +190,40 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        (value, action) = self.max_value(gameState, 0)
+        return action
+    
+    def max_value(self, gameState, currentDepth):
+        if(gameState.isWin() or gameState.isLose() or currentDepth == self.depth):
+            return (self.evaluationFunction(gameState), None)
+        (bestValue, bestAction) = -INFINITY, None
+        for action in gameState.getLegalActions(0):
+            print('depth = {}, agent = PACMAN, move = {}'.format(currentDepth, action))
+            # Call MIN for ghost #1
+            (value2, action2) = self.min_value(gameState.generateSuccessor(0, action), currentDepth, 1) 
+            if value2 > bestValue:
+                (bestValue, bestAction) = (value2, action)
+        return (bestValue, bestAction)
+    
+    def min_value(self, gameState, currentDepth, ghost_number):
+        if(gameState.isWin() or gameState.isLose() or currentDepth == self.depth):
+            return (self.evaluationFunction(gameState), None)
+        (bestValue, bestAction) = -INFINITY, None
+        for action in gameState.getLegalActions(ghost_number):
+            # If ghost number is less than total ghosts, call MIN again for the next ghost
+            for i in range(1, ghost_number):
+                print('\t', end='')
+            print('depth = {}, agent = GHOST #{}, move = {}'.format(currentDepth, ghost_number, action))
+            if(ghost_number < gameState.getNumAgents()):
+                ghost_number += 1
+                (value2, action2) = self.min_value(gameState.generateSuccessor(ghost_number, action), currentDepth, ghost_number) 
+            else:
+                # Else, increment the depth and call MAX
+                currentDepth += 1
+                (value2, action2) = self.max_value(gameState.generateSuccessor(ghost_number, action), currentDepth) 
+            if value2 < bestValue:
+                (bestValue, bestAction) = (value2, action)
+        return (bestValue, bestAction)
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """

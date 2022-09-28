@@ -8,7 +8,8 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "pacman.py -p ReflexAgent -l testClassic",
+            "program": "${file}",
+            "args": ["-q", "q2"],
             "console": "integratedTerminal",
             "justMyCode": true
         }

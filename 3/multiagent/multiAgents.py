@@ -12,12 +12,14 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from asyncio.windows_events import INFINITE
+from multiprocessing.sharedctypes import Value
+from pickle import TRUE
 from util import manhattanDistance
 from game import Directions
 import random, util
 
 from game import Agent
-
 class ReflexAgent(Agent):
     """
     A reflex agent chooses an action at each choice point by examining
@@ -27,7 +29,6 @@ class ReflexAgent(Agent):
     it in any way you see fit, so long as you don't touch our method
     headers.
     """
-
 
     def getAction(self, gameState):
         """
@@ -48,7 +49,6 @@ class ReflexAgent(Agent):
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
         "Add more of your code here if you want to"
-
         return legalMoves[chosenIndex]
 
     def evaluationFunction(self, currentGameState, action):
@@ -72,9 +72,62 @@ class ReflexAgent(Agent):
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        #print('Successor game state = ', successorGameState)
+        #print('New position = ', newPos)
+        #print('New food = ', newFood)
+        #print('New ghost times = ', newGhostStates[0])
+        #print('New scared times = ', newScaredTimes)
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+       
+        # Baseline position value, minimum is 100 so the biases work correctly
+        value = successorGameState.getScore()  
+
+        # Find (Manhattan) distance to closest not scared ghost. Later we could use A* search
+        min_ghost_dist = INFINITE
+        sum_ghost_dist = 0
+        for i in range(0, len(newGhostStates)):
+            mh_dist = manhattanDistance(newGhostStates[i].getPosition(), newPos)
+            if(newScaredTimes[i] == 0): # Not scared
+                if(mh_dist < min_ghost_dist):
+                    min_ghost_dist = mh_dist
+                sum_ghost_dist += 2 * mh_dist
+            elif(newScaredTimes[i] > mh_dist): # Scared and we could eat it
+                value += 300 / mh_dist 
+
+        #print('Dist = {}'.format(min_ghost_dist))
+        if(min_ghost_dist < 1): # Loses
+            return -INFINITE
+
+        # Chase food
+        min_food_dist = INFINITE
+        sum_food_dist = 0
+        # For now we scan the whole array
+        for i in range(newFood.width):
+            for j in range(newFood.height):
+                if(newFood[i][j]):
+                    # There is food on that square
+                    mh_dist = manhattanDistance((i, j), newPos) 
+                    # For food we do an inverse distance sum
+                    sum_food_dist += 10 / mh_dist
+                    if(mh_dist < min_food_dist):
+                        min_food_dist = mh_dist
+
+        # Add food advantage
+        #print('Min food dist = {}'.format(min_food_dist))
+        #print(min_food_dist)
+        value += sum_food_dist
+        """print('To pos: {}{}, action = {}, value = {}'.format(successorGameState.getPacmanPosition()[0],
+        successorGameState.getPacmanPosition()[1], action, value))"""
+        if(action is Directions.STOP): # Stopping is usually not good
+            value *= 0.5
+
+        """print('Moving from ({}, {}) to ({}, {}) VALUE = {}'.format(
+            currentGameState.getPacmanPosition()[0],
+            currentGameState.getPacmanPosition()[1],
+            successorGameState.getPacmanPosition()[0],
+            successorGameState.getPacmanPosition()[1],
+            value))"""
+        return value
 
 def scoreEvaluationFunction(currentGameState):
     """

@@ -189,41 +189,54 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
+        "*** YOUR CODE HERE ***" 
+        print('Number of ghosts: {} Depth = {}'.format(gameState.getNumAgents() - 1, self.depth))
         (value, action) = self.max_value(gameState, 0)
         return action
     
-    def max_value(self, gameState, currentDepth):
-        if(gameState.isWin() or gameState.isLose() or currentDepth == self.depth):
-            return (self.evaluationFunction(gameState), None)
-        (bestValue, bestAction) = -INFINITY, None
-        for action in gameState.getLegalActions(0):
-            print('depth = {}, agent = PACMAN, move = {}'.format(currentDepth, action))
+    def max_value(self, game_state, cur_depth):
+        if(game_state.isWin() or game_state.isLose() or cur_depth == self.depth):
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Current evaluation depth = {}, target depth = {}'.format(cur_depth, self.depth))
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Evaluating at Pacman, depth = {}, val = {}'.format(cur_depth, self.evaluationFunction(game_state)))
+            return (self.evaluationFunction(game_state), None)
+        (best_val, best_action) = -INFINITY, None
+        for action in game_state.getLegalActions(0):
             # Call MIN for ghost #1
-            (value2, action2) = self.min_value(gameState.generateSuccessor(0, action), currentDepth, 1) 
-            if value2 > bestValue:
-                (bestValue, bestAction) = (value2, action)
-        return (bestValue, bestAction)
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Pacman moves {}, d = {}, bestAction = {}, bestEval = {}, moves = {}'.format(action, cur_depth, best_action, best_val, game_state.getLegalActions(0)))
+            (value2, action2) = self.min_value(game_state.generateSuccessor(0, action), cur_depth + 1, 1) 
+            if value2 > best_val:
+                (best_val, best_action) = (value2, action)
+        return (best_val, best_action)
     
-    def min_value(self, gameState, currentDepth, ghost_number):
-        if(gameState.isWin() or gameState.isLose() or currentDepth == self.depth):
-            return (self.evaluationFunction(gameState), None)
-        (bestValue, bestAction) = -INFINITY, None
-        for action in gameState.getLegalActions(ghost_number):
+    def min_value(self, game_state, cur_depth, ghost_number):
+        if(game_state.isWin() or game_state.isLose() or cur_depth == self.depth):
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Current evaluation depth = {}, target depth = {}'.format(cur_depth, self.depth))
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Evaluating at ghost #{}, depth = {}, val = {}'.format(ghost_number, cur_depth, self.evaluationFunction(game_state)))
+            return (self.evaluationFunction(game_state), None)
+        (best_val, best_action) = INFINITY, None
+        for action in game_state.getLegalActions(ghost_number):
             # If ghost number is less than total ghosts, call MIN again for the next ghost
-            for i in range(1, ghost_number):
-                print('\t', end='')
-            print('depth = {}, agent = GHOST #{}, move = {}'.format(currentDepth, ghost_number, action))
-            if(ghost_number < gameState.getNumAgents()):
-                ghost_number += 1
-                (value2, action2) = self.min_value(gameState.generateSuccessor(ghost_number, action), currentDepth, ghost_number) 
+            for i in range(0, cur_depth):
+                print('   ', end = '')
+            print('Ghost #{} moves {}, d = {}, bestAction = {}, bestEval = {}, moves = {}'.format(ghost_number, action, cur_depth, best_action, best_val, game_state.getLegalActions(ghost_number)))
+            if(ghost_number < game_state.getNumAgents() - 1):
+                (value2, action2) = self.min_value(game_state.generateSuccessor(ghost_number, action), cur_depth + 1, ghost_number + 1) 
             else:
                 # Else, increment the depth and call MAX
-                currentDepth += 1
-                (value2, action2) = self.max_value(gameState.generateSuccessor(ghost_number, action), currentDepth) 
-            if value2 < bestValue:
-                (bestValue, bestAction) = (value2, action)
-        return (bestValue, bestAction)
+                (value2, action2) = self.max_value(game_state.generateSuccessor(ghost_number, action), cur_depth + 1) 
+            if value2 < best_val:
+                (best_val, best_action) = (value2, action)
+        return (best_val, best_action)
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """

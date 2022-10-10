@@ -5,6 +5,7 @@
 from ast import main
 import copy
 from itertools import product as prod
+import time
 
 
 class CSP:
@@ -144,9 +145,9 @@ class CSP:
         self.inference(assignment, self.get_all_arcs())
 
         # Call backtrack with the partial assignment 'assignment'
-        return self.backtrack(assignment)
+        return (self.backtrack(assignment, 0, 0))
 
-    def backtrack(self, assignment):
+    def backtrack(self, assignment, backtrack_calls, backtrack_failures):
         """The function 'Backtrack' from the pseudocode in the
         textbook.
 
@@ -170,17 +171,35 @@ class CSP:
         assignments and inferences that took place in previous
         iterations of the loop.
         """
-        # TODO: YOUR CODE HERE
-        pass
-
+        # Check if assignment is complete
+        complete = True
+        for var in assignment:
+            if(len(assignment.get(var))) is not 1:
+                complete = False
+                break
+        if(complete): return (assignment, backtrack_calls, backtrack_failures) 
+        # Select the next variable to assign
+        var = self.select_unassigned_variable(assignment)
+        # Loop through all possible vlaues for var in the way specified by the order heuristic
+        for value in self.order_domain_values(var, assignment):
+            print(value)
+        return (None, backtrack_calls, backtrack_failures + 1) # We return None as the failure value
+    
+    def order_domain_values(self, var, assignment):
+        return var # TODO implement heuristic
     def select_unassigned_variable(self, assignment):
         """The function 'Select-Unassigned-Variable' from the pseudocode
         in the textbook. Should return the name of one of the variables
         in 'assignment' that have not yet been decided, i.e. whose list
         of legal values has a length greater than one.
         """
-        # TODO: YOUR CODE HERE
-        pass
+        # Minimum Remaning Values heuristic
+        (min_choices, min_var) = (10, None)
+        for var in assignment:
+            if(len(var) == 1): continue # Already assigned
+            if(len(var) < min_choices): (min_choices, min_var) = (len(var), var)
+        # TODO: Implement deegree heuristic
+        return min_var
 
     def inference(self, assignment, queue):
         """The function 'AC-3' from the pseudocode in the textbook.
@@ -188,8 +207,17 @@ class CSP:
         the lists of legal values for each undecided variable. 'queue'
         is the initial queue of arcs that should be visited.
         """
-        # TODO: YOUR CODE HERE
-        pass
+        while(len(queue) > 0):
+            (i, j) = queue.pop() # Arc i -> j
+            if(self.revise(assignment, i, j)):
+                # The domain is empty, there is no solution
+                if(len(assignment.get(i)) == 0):
+                    return False
+                # Add all neighbour backwards arcs except j -> i
+                for k in self.constraints.get(i):
+                    if k == j: continue
+                    queue.append((k, i))
+        return True
 
     def revise(self, assignment, i, j):
         """The function 'Revise' from the pseudocode in the textbook.
@@ -200,9 +228,18 @@ class CSP:
         between i and j, the value should be deleted from i's list of
         legal values in 'assignment'.
         """
-        # TODO: YOUR CODE HERE
-        pass
-
+        revised = False
+        for i_value in assignment.get(i):
+            satisfied = False
+            for j_value in assignment.get(j):
+                # Check if there is a value in j that satisfies the constraints
+                if(self.constraints.get(i).get(j).count((i_value, j_value))> 0):
+                    satisfied = True
+            if not satisfied:
+                # Delete i value from i's domain
+                assignment.get(i).remove(i_value)
+                revised = True
+        return revised
 
 def create_map_coloring_csp():
     """Instantiate a CSP representing the map coloring problem from the
@@ -281,8 +318,17 @@ def print_sudoku_solution(solution):
 
 
 def main():
-    csp = create_sudoku_csp("easy.txt")
-    solution = csp.backtracking_search()
-    # print_sudoku_solution(solution)
+    boards = ["easy.txt", "medium.txt", "hard.txt", "veryhard.txt"]
+    for board in boards:
+        board_name = board.split('.')[0]
+        csp = create_sudoku_csp(board)
+        print('\n--- Solving board {} ---\n'.format(board_name))
+        start = time.time()
+        (solution, backtrack_calls, backtrack_failures) = csp.backtracking_search()
+        end = time.time()
+        print('Board {} solved in {:.2f} ms, with {} backtrack calls and {} backtrack failures'
+            .format(board_name, ((end - start) * 1000), backtrack_calls, backtrack_failures))
+        print('\nSolution:\n')
+        print_sudoku_solution(solution)
 
 main()

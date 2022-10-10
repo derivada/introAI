@@ -181,11 +181,27 @@ class CSP:
         # Select the next variable to assign
         var = self.select_unassigned_variable(assignment)
         # Loop through all possible vlaues for var in the way specified by the order heuristic
-        for value in self.order_domain_values(var, assignment):
-            print(value)
+        for value in assignment[var]:
+            # TODO do we need to check for consistency here?
+            assignment[var] = [value] # Add value to assignment
+            # Build inference queue, MAC algorithm using AC-3 constraint check
+            # We add all arcs neighbouring arcs to current variable
+            queue = self.get_all_neighboring_arcs(var)
+
+            if(self.inference(assignment, queue)):
+                # TODO add inferences to csp??
+                # Call recursively with deep copy of the current assignment
+                result = self.backtrack(copy.deepcopy(assignment), backtrack_calls + 1, backtrack_failures)
+                if result[0] is not None: return result
+                # TODO remove inferences from csp??
         return (None, backtrack_calls, backtrack_failures + 1) # We return None as the failure value
     
     def order_domain_values(self, var, assignment):
+        """This function takes a variable and an assignment and produces
+        the order in which we will explore the possible assignments for it.
+        It follows the Least-Constraining-Value heuristic to produce the
+        ordering.
+        """
         return var # TODO implement heuristic
     def select_unassigned_variable(self, assignment):
         """The function 'Select-Unassigned-Variable' from the pseudocode
@@ -196,8 +212,8 @@ class CSP:
         # Minimum Remaning Values heuristic
         (min_choices, min_var) = (10, None)
         for var in assignment:
-            if(len(var) == 1): continue # Already assigned
-            if(len(var) < min_choices): (min_choices, min_var) = (len(var), var)
+            if(len(assignment[var]) == 1): continue # Already assigned
+            if(len(assignment[var]) < min_choices): (min_choices, min_var) = (len(assignment[var]), var)
         # TODO: Implement deegree heuristic
         return min_var
 
@@ -326,9 +342,12 @@ def main():
         start = time.time()
         (solution, backtrack_calls, backtrack_failures) = csp.backtracking_search()
         end = time.time()
-        print('Board {} solved in {:.2f} ms, with {} backtrack calls and {} backtrack failures'
-            .format(board_name, ((end - start) * 1000), backtrack_calls, backtrack_failures))
-        print('\nSolution:\n')
-        print_sudoku_solution(solution)
+        if solution is not None:
+            print('Board {} solved in {:.2f} ms, with {} backtrack calls and {} backtrack failures'
+                .format(board_name, ((end - start) * 1000), backtrack_calls, backtrack_failures))
+            print('\nSolution:\n')
+            print_sudoku_solution(solution)
+        else:
+            print('Could not solve board {}\n'.format(board_name))
 
 main()

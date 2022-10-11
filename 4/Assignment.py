@@ -1,11 +1,13 @@
 # CSP Assignment
 # Original code by Håkon Måløy
 # Updated by Xavier Sánchez Díaz
+# Solved by Pablo Díaz Viñambres
 
 from ast import main
 import copy
 from itertools import product as prod
 import time
+from venv import create
 
 
 class CSP:
@@ -174,47 +176,52 @@ class CSP:
         # Check if assignment is complete
         complete = True
         for var in assignment:
-            if(len(assignment.get(var))) is not 1:
+            if(len(assignment[var])) is not 1:
                 complete = False
                 break
-        if(complete): return (assignment, backtrack_calls, backtrack_failures) 
-        # Select the next variable to assign
-        var = self.select_unassigned_variable(assignment)
-        # Loop through all possible vlaues for var in the way specified by the order heuristic
-        for value in assignment[var]:
-            # TODO do we need to check for consistency here?
-            assignment[var] = [value] # Add value to assignment
-            # Build inference queue, MAC algorithm using AC-3 constraint check
-            # We add all arcs neighbouring arcs to current variable
-            queue = self.get_all_neighboring_arcs(var)
+        
+        # Return the complete assignment
+        if(complete): 
+            return (assignment, backtrack_calls, backtrack_failures) 
 
-            if(self.inference(assignment, queue)):
-                # TODO add inferences to csp??
-                # Call recursively with deep copy of the current assignment
-                result = self.backtrack(copy.deepcopy(assignment), backtrack_calls + 1, backtrack_failures)
-                if result[0] is not None: return result
-                # TODO remove inferences from csp??
-        return (None, backtrack_calls, backtrack_failures + 1) # We return None as the failure value
+        # Select the next variable
+        var = self.select_unassigned_variable(assignment)
+
+        # Loop through all possible values in the way specified by the order heuristic
+        for value in assignment[var]:
+            # Save the previous assignment here so we don't carry old inferences
+            old_assign = copy.deepcopy(assignment)
+            # Add value to assignment
+            assignment[var] = [value] 
+
+            # For inferences, we use the Maintaining Arc Consistency (MAC) algorithm by adding neighbouring arcs to the AC-3 queue
+            if(self.inference(assignment, self.get_all_neighboring_arcs(var))):
+                # Call recursively to assign next variable
+                (result, backtrack_calls, backtrack_failures) = self.backtrack(assignment, backtrack_calls + 1, backtrack_failures)
+                # If we found a result, go up the tree
+                if result is not None: return (result, backtrack_calls, backtrack_failures)
+            
+            # Try next value, resetting the assignment to remove inferences for last value
+            assignment = old_assign
+        
+        # If we couldn't find a result, backtrack to previous variable. None is our failure value
+        return (None, backtrack_calls, backtrack_failures + 1)
     
-    def order_domain_values(self, var, assignment):
-        """This function takes a variable and an assignment and produces
-        the order in which we will explore the possible assignments for it.
-        It follows the Least-Constraining-Value heuristic to produce the
-        ordering.
-        """
-        return var # TODO implement heuristic
     def select_unassigned_variable(self, assignment):
         """The function 'Select-Unassigned-Variable' from the pseudocode
         in the textbook. Should return the name of one of the variables
         in 'assignment' that have not yet been decided, i.e. whose list
         of legal values has a length greater than one.
         """
-        # Minimum Remaning Values heuristic
+        # Minimum Remaning Values heuristic, we choose the variable with the least choices left in the assignment
         (min_choices, min_var) = (10, None)
         for var in assignment:
-            if(len(assignment[var]) == 1): continue # Already assigned
-            if(len(assignment[var]) < min_choices): (min_choices, min_var) = (len(assignment[var]), var)
-        # TODO: Implement deegree heuristic
+            # The variable is already assigned
+            if(len(assignment[var]) == 1): continue 
+            # New minimum remaining values variable
+            if(len(assignment[var]) < min_choices): 
+                (min_choices, min_var) = (len(assignment[var]), var)
+                
         return min_var
 
     def inference(self, assignment, queue):
@@ -223,13 +230,17 @@ class CSP:
         the lists of legal values for each undecided variable. 'queue'
         is the initial queue of arcs that should be visited.
         """
+        # While we have elements in the queue
         while(len(queue) > 0):
-            (i, j) = queue.pop() # Arc i -> j
+            # Arc i -> j
+            (i, j) = queue.pop() 
+            # Revise the domain of i for assuring arc consistency
             if(self.revise(assignment, i, j)):
                 # The domain is empty, there is no solution
                 if(len(assignment.get(i)) == 0):
                     return False
-                # Add all neighbour backwards arcs except j -> i
+                # The domain was revised, add all neighbour backwards arcs except j -> i 
+                # to check new assignment inconsistencies
                 for k in self.constraints.get(i):
                     if k == j: continue
                     queue.append((k, i))
@@ -245,14 +256,15 @@ class CSP:
         legal values in 'assignment'.
         """
         revised = False
+        # For every value in i's domain, we check if there is a value in j's domain that satisfies the constraints
         for i_value in assignment.get(i):
             satisfied = False
             for j_value in assignment.get(j):
-                # Check if there is a value in j that satisfies the constraints
                 if(self.constraints.get(i).get(j).count((i_value, j_value))> 0):
                     satisfied = True
+                    break
+            # If there is no value in j that satisfies i, we remove it i's domain and mark the arc as revised
             if not satisfied:
-                # Delete i value from i's domain
                 assignment.get(i).remove(i_value)
                 revised = True
         return revised
@@ -334,6 +346,7 @@ def print_sudoku_solution(solution):
 
 
 def main():
+    # We run the solver for every board, also getting the time elapsed, and backtrack calls and failures
     boards = ["easy.txt", "medium.txt", "hard.txt", "veryhard.txt"]
     for board in boards:
         board_name = board.split('.')[0]
